@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>მორფეუსი - ქართული ჩატბოტი</title>
+    <style>
+        :root {
+            --bg-light: #f0f0f0;
+            --text-light: #222;
+            --chat-bg-light: #fff;
+            --user-bg-light: #007acc;
+            --bot-bg-light: #e1e1e1;
+
+            --bg-dark: #121212;
+            --text-dark: #e0e0e0;
+            --chat-bg-dark: #1e1e1e;
+            --user-bg-dark: #00bfa5;
+            --bot-bg-dark: #333;
+
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: var(--font-family);
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        body.light {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background-color: var(--chat-bg-dark);
+            transition: background-color 0.3s;
+        }
+
+        body.light #container {
+            background-color: var(--chat-bg-light);
+        }
+
+        header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        body.light header {
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        #theme-toggle {
+            cursor: pointer;
+            background: transparent;
+            border: 2px solid currentColor;
+            border-radius: 25px;
+            padding: 6px 14px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: inherit;
+        }
+
+        #chatbox {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .user {
+            align-self: flex-end;
+            background-color: var(--user-bg-dark);
+            color: var(--bg-dark);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot {
+            align-self: flex-start;
+            background-color: var(--bot-bg-dark);
+            color: var(--text-dark);
+            border-bottom-left-radius: 4px;
+        }
+
+        body.light .user {
+            background-color: var(--user-bg-light);
+            color: var(--chat-bg-light);
+        }
+
+        body.light .bot {
+            background-color: var(--bot-bg-light);
+            color: var(--text-light);
+        }
+
+        #input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 25px 0 0 25px;
+            font-size: 1rem;
+            background-color: #222;
+            color: #eee;
+        }
+
+        #send-btn {
+            background-color: var(--user-bg-dark);
+            color: var(--bg-dark);
+            border: none;
+            padding: 0 22px;
+            font-size: 1rem;
+            border-radius: 0 25px 25px 0;
+            cursor: pointer;
+        }
+
+        body.light #user-input {
+            background-color: #f2f2f2;
+            color: #111;
+        }
+
+        body.light #send-btn {
+            background-color: var(--user-bg-light);
+            color: var(--chat-bg-light);
+        }
+
+        @media (max-width: 600px) {
+            #chatbox {
+                padding: 10px;
+                font-size: 1rem;
+            }
+
+            header {
+                font-size: 1.2rem;
+                padding: 10px;
+            }
+
+            #user-input, #send-btn {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <header>
+            მორფეუსი
+            <button id="theme-toggle">თემა</button>
+        </header>
+        <div id="chatbox" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <form id="input-area" onsubmit="return false;">
+            <input type="text" id="user-input" placeholder="დაწერე კითხვა..." autocomplete="off" />
+            <button id="send-btn" type="submit">გაგზავნა</button>
+        </form>
+    </div>
+
+    <script>
+        (() => {
+            const themeToggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            const chatbox = document.getElementById('chatbox');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+
+            function setTheme(theme) {
+                if (theme === 'light') {
+                    body.classList.add('light');
+                    themeToggle.textContent = 'ღამე';
+                } else {
+                    body.classList.remove('light');
+                    themeToggle.textContent = 'დღე';
+                }
+                localStorage.setItem('chatTheme', theme);
+            }
+
+            const savedTheme = localStorage.getItem('chatTheme') || 'dark';
+            setTheme(savedTheme);
+
+            themeToggle.addEventListener('click', () => {
+                const isLight = body.classList.contains('light');
+                setTheme(isLight ? 'dark' : 'light');
+            });
+
+            function appendMessage(text, className) {
+                const msg = document.createElement('div');
+                msg.className = 'message ' + className;
+                msg.textContent = text;
+                chatbox.appendChild(msg);
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+
+            function typeText(text, className) {
+                const msg = document.createElement('div');
+                msg.className = 'message ' + className;
+                chatbox.appendChild(msg);
+                chatbox.scrollTop = chatbox.scrollHeight;
+
+                let index = 0;
+                const typingSpeed = 33; // 30 სიმბოლოს წამში (3-ჯერ სწრაფად)
+
+                function typeChar() {
+                    if (index < text.length) {
+                        msg.textContent += text.charAt(index);
+                        index++;
+                        chatbox.scrollTop = chatbox.scrollHeight;
+                        setTimeout(typeChar, typingSpeed);
+                    }
+                }
+
+                typeChar();
+            }
+
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+                appendMessage(message, 'user');
+                userInput.value = '';
+                userInput.disabled = true;
+                sendBtn.disabled = true;
+
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(res => res.json())
+                .then(data => typeText(data.response, 'bot'))
+                .catch(() => appendMessage('სერვერზე დაკავშირება ვერ მოხერხდა.', 'bot'))
+                .finally(() => {
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                });
+            }
+
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
